@@ -1,0 +1,21 @@
+{
+  "name": "@aakoch/loader",
+  "version": "0.0.0",
+  "description": "Pug loader",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@foo-dog/utils": "file:../utils",
+    "@jaredpalmer/wrapline": "^2.0.2",
+    "indent-transformer": "^0.3.0",
+    "pug-lexing-transformer": "file:../pug-lexing-transformer"
+  },
+  "keywords": [
+    "pug"
+  ],
+  "author": "Adam Koch (aakoch)",
+  "license": "ISC",
+  "type": "module"
+}

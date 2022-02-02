@@ -1,0 +1,24 @@
+[
+  { "source": "build/includes.pug", "type": "include", "file": "auxiliary/mixins.pug", "lineNumber": 2 },
+  { "source": "build/includes.pug", "type": "mixin_call", "name": "foo", "lineNumber": 4 },
+  {
+    "source": "build/includes.pug",
+    "name": "body",
+    "type": "tag",
+    "lineNumber": 6,
+    "children": [
+      { "source": "build/includes.pug", "type": "include", "file": "auxiliary/smile.html", "lineNumber": 7 },
+      { "source": "build/includes.pug", "type": "include", "file": "auxiliary/escapes.html", "lineNumber": 8 },
+      {
+        "source": "build/includes.pug",
+        "name": "script",
+        "type": "tag",
+        "attrs": [ { "name": "type", "val": "text/javascript" } ],
+        "lineNumber": 9,
+        "children": [
+          { "source": "build/includes.pug", "type": "text", "val": "include:verbatim auxiliary/includable.js", "lineNumber": 10 }
+        ]
+      }
+    ]
+  }
+]

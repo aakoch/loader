@@ -34,7 +34,6 @@ try {
           process.stdout.write(jsonString)
         }
         else {
-          debug('writing file ' + options.out.name)
           fs.writeFileSync(options.out.name, jsonString)
         }
       }

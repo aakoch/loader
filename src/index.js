@@ -102,10 +102,10 @@ function visit(obj, options) {
   // debug("visit: obj=", obj)
   // debug("visit: options=", options)
   if (obj.hasOwnProperty('type') && (obj.type === 'include' || obj.type === 'extends')) {
-    if (obj.hasOwnProperty('file')) {
+    if (obj.hasOwnProperty('resolvedVal')) {
 
-      // debug('parsed path=', path.parse(options.filename))
-      let linkedFile = path.resolve(process.env.PWD, path.parse(options.filename).dir, obj.file)
+      // debug('parsed path=', path.parse(obj.resolvedVal))
+      let linkedFile = path.resolve(process.env.PWD, path.parse(obj.resolvedVal).dir, obj.file)
 
       if (exists(linkedFile)) {
 

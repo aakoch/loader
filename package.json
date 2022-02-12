@@ -9,7 +9,7 @@
   "dependencies": {
     "@foo-dog/utils": "file:../utils",
     "@jaredpalmer/wrapline": "^2.0.2",
-    "indent-transformer": "^0.3.0",
+    "indent-transformer": "file:../indent-transformer",
     "pug-lexing-transformer": "file:../pug-lexing-transformer"
   },
   "keywords": [

@@ -104,14 +104,18 @@ function visit(obj, options) {
   if (obj.hasOwnProperty('type') && (obj.type === 'include' || obj.type === 'extends')) {
     if (obj.hasOwnProperty('resolvedVal')) {
 
-      // debug('parsed path=', path.parse(obj.resolvedVal))
-      let linkedFile = path.resolve(process.env.PWD, path.parse(obj.resolvedVal).dir, obj.file)
+      debug('process.env=', process.env)
+      debug('obj.resolvedVal=', obj.resolvedVal)
+      debug('parsed path=', path.parse(obj.resolvedVal))
+      const resolvedDir = path.parse(obj.resolvedVal).dir
+      debug('resolvedDir=', resolvedDir)
+      let linkedFile = path.resolve(process.env.PWD, resolvedDir, obj.file ?? obj.source)
 
       if (exists(linkedFile)) {
 
         let id = process.hrtime.bigint() + crypto.randomUUID()
         obj.id = id
-        if (isSupportedFileExtension(path.parse(obj.file).ext)) {
+        if (isSupportedFileExtension(path.parse(obj.file ?? obj.source).ext)) {
           promises.push(load(linkedFile).then(data => {
             debug("after reading file, data=", data)
             const history = obj.history ?? []

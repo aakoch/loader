@@ -4,7 +4,7 @@ import debugFunc from 'debug'
 import { inspect } from 'util'
 const debug = debugFunc('loader')
 import stream from 'stream'
-import LexingTransformer from 'pug-lexing-transformer'
+import LexingTransformer from 'lexing-transformer'
 import concat from 'concat-stream'
 import { fileURLToPath } from 'url';
 import { loadavg } from 'os'
@@ -152,7 +152,7 @@ function visit(obj, options) {
       }
     }
     else {
-      throw new Error('Missing path (file field) of file field in AST. Make sure you are using the latest version of pug-lexing-transformer. Offending object=' + inspect(obj))
+      throw new Error('Missing path (file field) of file field in AST. Make sure you are using the latest version of lexing-transformer. Offending object=' + inspect(obj))
     }
   }
   //   else if (obj.hasOwnProperty('name') && obj.name === 'extend') {
@@ -166,7 +166,7 @@ function visit(obj, options) {
   //       debug('linkedFile=' + linkedFile)
   //     }
   //     else {
-  //       throw new Error('Missing "source" or "val"  field in AST. Make sure you are using the latest version of pug-lex-transformer')
+  //       throw new Error('Missing "source" or "val"  field in AST. Make sure you are using the latest version of lex-transformer')
   //     }
   //   }
   // }

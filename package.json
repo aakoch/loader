@@ -1,7 +1,7 @@
 {
   "name": "@aakoch/loader",
-  "version": "0.0.0",
-  "description": "Pug loader",
+  "version": "0.1.0",
+  "description": "Foo-Dog / alternative Pug loader",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,13 +9,15 @@
   "dependencies": {
     "@foo-dog/utils": "file:../utils",
     "@jaredpalmer/wrapline": "^2.0.2",
-    "indent-transformer": "file:../indent-transformer",
-    "pug-lexing-transformer": "file:../pug-lexing-transformer"
+    "@foo-dog/indent-transformer": "file:../indent-transformer",
+    "@foo-dog/lexing-transformer": "file:../lexing-transformer"
   },
   "keywords": [
-    "pug"
+    "pug",
+    "foo-dog",
+    "foodog"
   ],
   "author": "Adam Koch (aakoch)",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module"
 }

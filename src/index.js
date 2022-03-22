@@ -4,14 +4,14 @@ import debugFunc from 'debug'
 import { inspect } from 'util'
 const debug = debugFunc('loader')
 import stream from 'stream'
-import LexingTransformer from 'lexing-transformer'
+import LexingTransformer from '@foo-dog/lexing-transformer'
 import concat from 'concat-stream'
 import { fileURLToPath } from 'url';
 import { loadavg } from 'os'
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 debug("__dirname=" + __dirname)
-import indentTransformer from 'indent-transformer';
+import indentTransformer from '@foo-dog/indent-transformer';
 import WrapLine from '@jaredpalmer/wrapline'
 import { exists, isSupportedFileExtension } from '@foo-dog/utils'
 import crypto from 'crypto'

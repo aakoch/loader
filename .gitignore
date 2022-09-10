@@ -10,3 +10,4 @@ src/using_jsonparse.js
 build
 test/in
 .DS_Store
+*.iml

@@ -7,10 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@foo-dog/utils": "file:../utils",
-    "@jaredpalmer/wrapline": "^2.0.2",
     "@foo-dog/indent-transformer": "file:../indent-transformer",
-    "@foo-dog/lexing-transformer": "file:../lexing-transformer"
+    "@foo-dog/lexing-transformer": "file:../lexing-transformer",
+    "@foo-dog/utils": "file:../utils",
+    "@jaredpalmer/wrapline": "^2.0.2"
   },
   "keywords": [
     "pug",

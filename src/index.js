@@ -1,31 +1,56 @@
-import fs, { link, readFileSync } from 'fs'
+import fs from 'fs'
 import path from 'path'
 import debugFunc from 'debug'
-import { inspect } from 'util'
-const debug = debugFunc('loader')
-import stream from 'stream'
+import {inspect} from 'util'
 import LexingTransformer from '@foo-dog/lexing-transformer'
-import concat from 'concat-stream'
-import { fileURLToPath } from 'url';
-import { loadavg } from 'os'
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-debug("__dirname=" + __dirname)
-import indentTransformer from '@foo-dog/indent-transformer';
+import {fileURLToPath} from 'url'
+import indentTransformer from '@foo-dog/indent-transformer'
 import WrapLine from '@jaredpalmer/wrapline'
-import { exists, isSupportedFileExtension } from '@foo-dog/utils'
+import {exists, isSupportedFileExtension} from '@foo-dog/utils'
 import crypto from 'crypto'
+
+const debug = debugFunc('loader')
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+debug('__dirname=' + __dirname)
 
 const buildDir = __dirname
 
 const promises = []
 
-async function walk(obj, options) {
+function visitWithDepth(options) {
+  return async el => {
+    return await walk(el, Object.assign({depth: (options.depth ?? 0) + 1}));
+  };
+}
+
+async function walk(obj, options = {depth: 0}) {
+  console.log("options.depth=" + options.depth)
   if (Array.isArray(obj)) {
-    obj.forEach(item => walk(item, options))
-  }
-  else {
-    visit(obj, options)
+    //   console.log("Found array")
+    //   obj = await obj.map(await visitWithDepth(options))
+    for (let i = 0; i < obj.length; i++) {
+      obj[i] = await walk(obj[i], Object.assign({depth: (options.depth ?? 0) + 1}));
+    }
+    //   // let arrayPromises = obj.map(item => walk(item, options))
+    //   // return Promise.all(arrayPromises) //.then(value => obj = value)
+  } else {
+    //   // const visitPromise = visit(obj, options);
+    //   // return visitPromise.then(value => obj = value)
+    //   // return visit(obj, options);
+    //   console.log("Found object: ", inspect(obj, false, 4))
+    obj.depth = options.depth
+
+    if (obj.children) {
+      // obj.children = await obj.children.map(await visitWithDepth(options))
+
+      for (let i = 0; i < obj.children.length; i++) {
+        obj.children[i] = await walk(obj.children[i], Object.assign({depth: (options.depth ?? 0) + 1}));
+      }
+    } else {
+      obj = await visit(obj, options)
+    }
   }
   return obj
 }
@@ -34,8 +59,8 @@ function findMatchingBase(directory1, directory2) {
   let index = 0
   let matches = true
   for (; index < directory1.length && index < directory2.length && matches; index++) {
-    const char1 = directory1[index];
-    const char2 = directory2[index];
+    const char1 = directory1[index]
+    const char2 = directory2[index]
     matches = char1 === char2
   }
 
@@ -43,139 +68,70 @@ function findMatchingBase(directory1, directory2) {
 }
 
 function fileInCache(filename) {
-  return false;
+  return false
 }
 
-var loadingFilenames = []
 async function load(filename) {
-  return new Promise((resolve, reject) => {
-    try {
-      // debug('load(): filename=' + filename)
-      if (loadingFilenames.includes(filename)) {
-      }
-      else {
-        loadingFilenames.push(filename)
-
-        if (fileInCache(filename)) {
-          reject('Not supported yet')
-        }
-        else {
-          const dir = path.dirname(filename);
-          const dir2 = path.join(buildDir, dir)
-          fs.mkdirSync(dir2, { recursive: true })
-          const newFile = path.join(filename + '.json');
-          // debug('Writing to ' + path.resolve(newFile))
-          const pugLexingTransformer = new LexingTransformer({ inFile: filename })
-          return Promise.resolve(fs.createReadStream(filename)
-            .pipe(WrapLine('|'))
-            .pipe(WrapLine(function (pre, line) {
-              // add 'line numbers' to each line
-              pre = pre || 0
-              return pre + 1
-            }))
-            .pipe(indentTransformer())
-            .pipe(pugLexingTransformer)
-            .pipe(concat({}, body => {
-              const obj = JSON.parse(body.toString('utf-8'))
-              debug('after concat, obj=', inspect(obj, false, 10));
-              resolve(obj)
-              // // debug(`concat(): newFile=${newFile}, body=${body.substring(0, 100)}...`)
-              // fs.writeFile(newFile, body, 'utf-8', (err) => {
-              //   if (err) throw err;
-              //   console.log(`${newFile} written`);
-              // })
-            }))
-            .on('error', e => {
-              reject(e.message)
-            }))
-        }
-
-      }
-    }
-    catch (e) {
-      reject(e.message)
-    }
-  })
+  const lexingTransformer = new LexingTransformer({inFile: filename})
+  return JSON.parse(await streamToString(fs.createReadStream(filename, {encoding: 'utf-8'})
+    .pipe(WrapLine('|'))
+    .pipe(
+      WrapLine(function (pre, line) {
+        // add 'line numbers' to each line
+        pre = pre || 0
+        return pre + 1
+      })
+    )
+    .pipe(indentTransformer())
+    .pipe(lexingTransformer)))
 }
 
-function visit(obj, options) {
-  // debug("visit: obj=", obj)
-  // debug("visit: options=", options)
+async function streamToString(stream) {
+  // lets have a ReadableStream as a stream variable
+  const chunks = [];
+
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk));
+  }
+
+  return Buffer.concat(chunks).toString("utf-8");
+}
+
+async function visit(obj, options) {
+  let retPromise;
   if (obj.hasOwnProperty('type') && (obj.type === 'include' || obj.type === 'extends')) {
     if (obj.hasOwnProperty('resolvedVal')) {
-
-      debug('process.env=', process.env)
-      debug('obj.resolvedVal=', obj.resolvedVal)
-      debug('parsed path=', path.parse(obj.resolvedVal))
-      const resolvedDir = path.parse(obj.resolvedVal).dir
-      debug('resolvedDir=', resolvedDir)
-      let linkedFile = path.resolve(process.env.PWD, resolvedDir, obj.file ?? obj.source)
+      let linkedFile = obj.resolvedVal
+      debug('linkedFile=', linkedFile)
 
       if (exists(linkedFile)) {
-
         let id = process.hrtime.bigint() + crypto.randomUUID()
         obj.id = id
-        if (isSupportedFileExtension(path.parse(obj.file ?? obj.source).ext)) {
-          promises.push(load(linkedFile).then(data => {
-            debug("after reading file, data=", data)
-            const history = obj.history ?? []
-            history.push(Object.assign({}, obj))
-            delete obj.file
-            obj = Object.assign(obj, data[0], { history: history })
-            return data
-          }))
-        }
-        else {
-          promises.push(fs.promises.readFile(linkedFile).then(data => {
-            
-            const history = obj.history ?? []
-            history.push(Object.assign({}, obj))
-            obj.source = obj.file
-            delete obj.file
-            delete obj.lineNumber
-            obj = Object.assign(obj, { type: 'text', val: data.toString('utf-8')}, { history: history })
+        if (isSupportedFileExtension(path.parse(obj.resolvedVal ?? obj.file).ext)) {
+          let fileContents = await load(linkedFile);
 
-            // obj.type_old = obj.type
-            // 
-            // obj.source_old = obj.source
-            // obj.type = 'text'
-            // obj.val = data.toString('utf-8')
-            // obj.id = id
-            // delete obj.file
-            debug('after setting obj, obj=', obj)
-            return obj
-          }))
+          if (Array.isArray(fileContents)) {
+            fileContents = Object.assign({history: obj}, {children: fileContents})
+          } else {
+
+            fileContents = Object.assign({}, {history: obj}, await load(linkedFile))
+          }
+
+          return fileContents
+        } else {
+          let text = fs.readFileSync(linkedFile, {encoding: 'utf-8'})
+          return Object.assign({}, {type: 'text', val: text, history: obj, source: obj.resolvedVal})
         }
+      } else {
+        console.error('Could not load ' + linkedFile)
       }
-      else {
-        console.error("Could not load " + linkedFile);
-      }
-    }
-    else {
-      throw new Error('Missing path (file field) of file field in AST. Make sure you are using the latest version of lexing-transformer. Offending object=' + inspect(obj))
+    } else {
+      throw new Error(
+        'Missing path (file field) of file field in AST. Make sure you are using the latest version of lexing-transformer. Offending object=' +
+        inspect(obj)
+      )
     }
   }
-  //   else if (obj.hasOwnProperty('name') && obj.name === 'extend') {
-
-  //     if (obj.hasOwnProperty('source')) {
-  //       let linkedFile = findFile(obj)
-
-  //       obj.type = 'include'
-  //       obj.name = linkedFile
-
-  //       debug('linkedFile=' + linkedFile)
-  //     }
-  //     else {
-  //       throw new Error('Missing "source" or "val"  field in AST. Make sure you are using the latest version of lex-transformer')
-  //     }
-  //   }
-  // }
-
-  if (obj.hasOwnProperty('children')) {
-    debug('children options=' + inspect(options))
-    obj.children.forEach(item => walk(item, options))
-  }
-
   return obj
 }
 
@@ -192,23 +148,10 @@ const linker = {
   link: async function (str, options) {
     debug('Entering load...')
     debug('options=' + inspect(options))
-
     const ast = JSON.parse(str)
-
     debug('starting ast=', inspect(ast, false, 10))
-
-    const obj = walk(ast, options)
-
-    await Promise.allSettled(promises).then(results => {
-      debug('all settled. results=', inspect(results, false, 10))
-    })
-
-    debug('all finished. obj=', inspect(obj, false, 10))
-
-    debug('Finished')
-
-    return obj
-  }
+    return await walk(ast, options)
+  },
 }
 
-export default linker;
+export default linker

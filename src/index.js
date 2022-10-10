@@ -1,50 +1,25 @@
 import fs from 'fs'
 import path from 'path'
+import stream from 'stream'
 import debugFunc from 'debug'
 import {inspect} from 'util'
 import LexingTransformer from '@foo-dog/lexing-transformer'
-import {fileURLToPath} from 'url'
-import indentTransformer from '@foo-dog/indent-transformer'
-import WrapLine from '@jaredpalmer/wrapline'
-import {exists, isSupportedFileExtension} from '@foo-dog/utils'
+import {exists, isSupportedFileExtension, withCreateStreams} from '@foo-dog/utils'
 import crypto from 'crypto'
+
+const FullLexingTransformer = LexingTransformer.FullLexingTransformer
 
 const debug = debugFunc('loader')
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-debug('__dirname=' + __dirname)
-
-const buildDir = __dirname
-
-const promises = []
-
-function visitWithDepth(options) {
-  return async el => {
-    return await walk(el, Object.assign({depth: (options.depth ?? 0) + 1}));
-  };
-}
-
 async function walk(obj, options = {depth: 0}) {
-  console.log("options.depth=" + options.depth)
   if (Array.isArray(obj)) {
-    //   console.log("Found array")
-    //   obj = await obj.map(await visitWithDepth(options))
     for (let i = 0; i < obj.length; i++) {
       obj[i] = await walk(obj[i], Object.assign({depth: (options.depth ?? 0) + 1}));
     }
-    //   // let arrayPromises = obj.map(item => walk(item, options))
-    //   // return Promise.all(arrayPromises) //.then(value => obj = value)
   } else {
-    //   // const visitPromise = visit(obj, options);
-    //   // return visitPromise.then(value => obj = value)
-    //   // return visit(obj, options);
-    //   console.log("Found object: ", inspect(obj, false, 4))
     obj.depth = options.depth
 
     if (obj.children) {
-      // obj.children = await obj.children.map(await visitWithDepth(options))
-
       for (let i = 0; i < obj.children.length; i++) {
         obj.children[i] = await walk(obj.children[i], Object.assign({depth: (options.depth ?? 0) + 1}));
       }
@@ -72,25 +47,22 @@ function fileInCache(filename) {
 }
 
 async function load(filename) {
-  const lexingTransformer = new LexingTransformer({inFile: filename})
-  return JSON.parse(await streamToString(fs.createReadStream(filename, {encoding: 'utf-8'})
-    .pipe(WrapLine('|'))
-    .pipe(
-      WrapLine(function (pre, line) {
-        // add 'line numbers' to each line
-        pre = pre || 0
-        return pre + 1
-      })
-    )
-    .pipe(indentTransformer())
-    .pipe(lexingTransformer)))
+  let aStream = new stream.PassThrough();
+  const options = withCreateStreams({in: {name: filename}, out: {createStream: () => aStream}});
+
+  const fullLexingTransformer = new FullLexingTransformer(options)
+  await fullLexingTransformer.processFile(options)
+
+  let processedOutput = await streamToString(aStream);
+  
+  return JSON.parse(processedOutput)
 }
 
-async function streamToString(stream) {
+async function streamToString(aStream) {
   // lets have a ReadableStream as a stream variable
   const chunks = [];
 
-  for await (const chunk of stream) {
+  for await (const chunk of aStream) {
     chunks.push(Buffer.from(chunk));
   }
 
@@ -98,23 +70,24 @@ async function streamToString(stream) {
 }
 
 async function visit(obj, options) {
-  let retPromise;
   if (obj.hasOwnProperty('type') && (obj.type === 'include' || obj.type === 'extends')) {
     if (obj.hasOwnProperty('resolvedVal')) {
       let linkedFile = obj.resolvedVal
       debug('linkedFile=', linkedFile)
 
       if (exists(linkedFile)) {
-        let id = process.hrtime.bigint() + crypto.randomUUID()
-        obj.id = id
+        obj.id = process.hrtime.bigint() + crypto.randomUUID()
         if (isSupportedFileExtension(path.parse(obj.resolvedVal ?? obj.file).ext)) {
           let fileContents = await load(linkedFile);
 
           if (Array.isArray(fileContents)) {
-            fileContents = Object.assign({history: obj}, {children: fileContents})
+            if (fileContents.length === 1) {
+              fileContents = Object.assign({}, {history: obj}, fileContents[0])
+            } else {
+              fileContents = Object.assign({}, {history: obj}, {children: fileContents})
+            }
           } else {
-
-            fileContents = Object.assign({}, {history: obj}, await load(linkedFile))
+            fileContents = Object.assign({}, {history: obj}, fileContents)
           }
 
           return fileContents
@@ -145,12 +118,12 @@ function findFile(obj) {
 }
 
 const linker = {
-  link: async function (str, options) {
+  link: async function (str, options = {}) {
     debug('Entering load...')
     debug('options=' + inspect(options))
     const ast = JSON.parse(str)
     debug('starting ast=', inspect(ast, false, 10))
-    return await walk(ast, options)
+    return await walk(ast, Object.assign(options, {depth: 0}))
   },
 }
 

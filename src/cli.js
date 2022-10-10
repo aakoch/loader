@@ -22,36 +22,39 @@ function printUsage() {
   console.log(help.join('\n'))
 }
 
-let options;
-try {
-  options = await parseArguments(process, printUsage)
-  
-  console.log("final:", inspect(await linker.link(fs.readFileSync(options.in.name, { encoding: 'utf-8' }), { filename: options.in.name }), false, 5))
+async function run() {
+  let options;
+  try {
+    options = await parseArguments(process, printUsage)
+
+    const obj = await linker.link(fs.readFileSync(options.in.name, {encoding: 'utf-8'}));
+
     // .then(obj => {
     //   console.log("then")
-    //   if (options.out) {
-    //     const jsonString = JSON.stringify(obj, null, '  ');
-    //     if (options.out.name == 'stdout') {
-    //       process.stdout.write(jsonString)
-    //     }
-    //     else {
-    //       fs.writeFileSync(options.out.name, jsonString)
-    //     }
-    //   }
+    if (options.out) {
+      const jsonString = JSON.stringify(obj, null, '  ');
+      if (options.out.name == 'stdout') {
+        process.stdout.write(jsonString)
+      } else {
+        fs.writeFileSync(options.out.name, jsonString)
+      }
+    }
     // })
     // .catch(reason => {
     //   console.error(reason)
     // })
-  
-  // setTimeout(function () {}, 1000)
-    
-} catch (e) {
-  if (chalk.supportsColorStderr) {
-    console.error(chalk.chalkStderr(chalk.red(e.message)))
-    console.error(e)
-  }
-  else {
-    console.error('*'.repeat(30) + '\n' + e.message)
-    console.error(e)
+
+    // setTimeout(function () {}, 1000)
+
+  } catch (e) {
+    if (chalk.supportsColorStderr) {
+      console.error(chalk.chalkStderr(chalk.red(e.message)))
+      console.error(e)
+    } else {
+      console.error('*'.repeat(30) + '\n' + e.message)
+      console.error(e)
+    }
   }
 }
+
+run()

@@ -7,8 +7,6 @@ import LexingTransformer from '@foo-dog/lexing-transformer'
 import {exists, isSupportedFileExtension, withCreateStreams} from '@foo-dog/utils'
 import crypto from 'crypto'
 
-const FullLexingTransformer = LexingTransformer.FullLexingTransformer
-
 const debug = debugFunc('loader')
 
 async function walk(obj, options = {depth: 0}) {
@@ -50,7 +48,8 @@ async function load(filename) {
   let aStream = new stream.PassThrough();
   const options = withCreateStreams({in: {name: filename}, out: {createStream: () => aStream}});
 
-  const fullLexingTransformer = new FullLexingTransformer(options)
+  const lexingTransformer = new LexingTransformer(options)
+  const fullLexingTransformer = new lexingTransformer.FullLexingTransformer(options)
   await fullLexingTransformer.processFile(options)
 
   let processedOutput = await streamToString(aStream);

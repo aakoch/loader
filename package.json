@@ -10,7 +10,9 @@
     "@foo-dog/indent-transformer": "file:../indent-transformer",
     "@foo-dog/lexing-transformer": "file:../lexing-transformer",
     "@foo-dog/utils": "file:../utils",
-    "@jaredpalmer/wrapline": "^2.0.2"
+    "@jaredpalmer/wrapline": "^2.0.2",
+    "chalk": "^5.3.0",
+    "debug": "^4.3.4"
   },
   "keywords": [
     "pug",
